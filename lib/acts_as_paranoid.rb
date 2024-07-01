@@ -34,10 +34,10 @@ module ActsAsParanoid
 
     paranoid_configuration.merge!(options) # user options
 
-    unless %w[time boolean string].include? paranoid_configuration[:column_type]
+    unless %w[time boolean string epoch_sec epoch_mil].include? paranoid_configuration[:column_type]
       raise ArgumentError,
-            "'time', 'boolean' or 'string' expected for :column_type option," \
-            " got #{paranoid_configuration[:column_type]}"
+        "'time', 'boolean', 'string', 'epoch_sec', or 'epoch_mil' expected for :column_type option," \
+        " got #{paranoid_configuration[:column_type]}"
     end
 
     return if paranoid?
@@ -47,7 +47,7 @@ module ActsAsParanoid
     # Magic!
     default_scope { where(paranoid_default_scope) }
 
-    define_deleted_time_scopes if paranoid_column_type == :time
+    define_deleted_time_scopes if %i(time epoch_sec epoch_mil).include?(paranoid_column_type)
   end
 end
 

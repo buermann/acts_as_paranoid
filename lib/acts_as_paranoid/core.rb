@@ -29,6 +29,8 @@ module ActsAsParanoid
             .where(paranoid_column_reference => paranoid_configuration[:deleted_value])
         elsif boolean_type_not_nullable?
           without_paranoid_default_scope.where(paranoid_column_reference => true)
+        elsif epoch_with_zero_default?
+          without_paranoid_default_scope.where("#{paranoid_column_reference} > 0")
         else
           without_paranoid_default_scope.where.not(paranoid_column_reference => nil)
         end
@@ -49,6 +51,8 @@ module ActsAsParanoid
             .or(all.table[paranoid_column].not_eq(paranoid_configuration[:deleted_value]))
         elsif boolean_type_not_nullable?
           all.table[paranoid_column].eq(false)
+        elsif epoch_with_zero_default?
+          all.table[paranoid_column].eq(0)
         else
           all.table[paranoid_column].eq(nil)
         end
@@ -60,6 +64,10 @@ module ActsAsParanoid
 
       def boolean_type_not_nullable?
         paranoid_column_type == :boolean && !paranoid_configuration[:allow_nulls]
+      end
+
+      def epoch_with_zero_default?
+        %i(epoch_sec epoch_mil).include?(paranoid_column_type) && !paranoid_configuration[:allow_nulls]
       end
 
       def paranoid_column
@@ -84,15 +92,19 @@ module ActsAsParanoid
 
       def delete_now_value
         case paranoid_configuration[:column_type]
-        when "time" then Time.now
-        when "boolean" then true
-        when "string" then paranoid_configuration[:deleted_value]
+        when "time"       then Time.now
+        when "epoch_sec"  then Time.now.to_i
+        when "epoch_mil"  then (Time.now.to_f*1000).to_i
+        when "boolean"    then true
+        when "string"     then paranoid_configuration[:deleted_value]
         end
       end
 
       def recovery_value
         if boolean_type_not_nullable?
           false
+        elsif epoch_with_zero_default?
+          0
         else
           nil
         end
@@ -231,6 +243,8 @@ module ActsAsParanoid
         paranoid_value == paranoid_configuration[:deleted_value]
       elsif self.class.boolean_type_not_nullable?
         paranoid_value == true
+      elsif self.class.epoch_with_zero_default?
+        paranoid_value > 0
       else
         !paranoid_value.nil?
       end

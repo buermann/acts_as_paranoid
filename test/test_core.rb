@@ -43,6 +43,18 @@ class ParanoidTest < ActiveSupport::TestCase
     has_many :paranoid_with_touch, dependent: :destroy
   end
 
+  class ParanoidEpochSec < ActiveRecord::Base
+    acts_as_paranoid column_type: "epoch_sec"
+
+    validates_uniqueness_of :name
+  end
+
+  class ParanoidEpochMil < ActiveRecord::Base
+    acts_as_paranoid column_type: "epoch_mil", allow_null: false
+
+    validates_uniqueness_of :name
+  end
+
   class ParanoidString < ActiveRecord::Base
     acts_as_paranoid column_type: "string", column: "deleted", deleted_value: "dead"
   end
@@ -112,8 +124,8 @@ class ParanoidTest < ActiveSupport::TestCase
     acts_as_paranoid
 
     attr_accessor :called_before_destroy, :called_after_destroy,
-                  :called_after_commit_on_destroy, :called_before_recover,
-                  :called_after_recover
+      :called_after_commit_on_destroy, :called_before_recover,
+      :called_after_recover
 
     before_destroy :call_me_before_destroy
     after_destroy :call_me_after_destroy
@@ -193,6 +205,23 @@ class ParanoidTest < ActiveSupport::TestCase
         t.integer   :paranoid_time_id
         t.integer   :paranoid_with_counter_caches_count
         t.integer   :paranoid_with_touch_and_counter_caches_count
+        t.integer   :custom_counter_cache
+        timestamps t
+      end
+
+      create_table :paranoid_epoch_secs do |t|
+        t.string    :name
+        t.integer   :deleted_at
+        t.integer   :paranoid_belongs_dependant_id
+        t.integer   :not_paranoid_id
+        timestamps t
+      end
+
+      create_table :paranoid_epoch_mils do |t|
+        t.string    :name
+        t.integer   :deleted_at, default: 0
+        t.integer   :paranoid_belongs_dependant_id
+        t.integer   :not_paranoid_id
         t.integer   :custom_counter_cache
         timestamps t
       end
@@ -292,6 +321,8 @@ class ParanoidTest < ActiveSupport::TestCase
     ["paranoid", "really paranoid", "extremely paranoid"].each do |name|
       ParanoidTime.create! name: name
       ParanoidBoolean.create! name: name
+      ParanoidEpochSec.create! name: name
+      ParanoidEpochMil.create! name: name
     end
 
     ParanoidString.create! name: "strings can be paranoid"
@@ -317,6 +348,14 @@ class ParanoidTest < ActiveSupport::TestCase
     assert_respond_to ParanoidTime, :deleted_before_time
     assert_respond_to ParanoidTime, :deleted_after_time
 
+    assert_respond_to ParanoidEpochSec, :deleted_inside_time_window
+    assert_respond_to ParanoidEpochSec, :deleted_before_time
+    assert_respond_to ParanoidEpochSec, :deleted_after_time
+
+    assert_respond_to ParanoidEpochMil, :deleted_inside_time_window
+    assert_respond_to ParanoidEpochMil, :deleted_before_time
+    assert_respond_to ParanoidEpochMil, :deleted_after_time
+
     refute_respond_to ParanoidBoolean, :deleted_inside_time_window
     refute_respond_to ParanoidBoolean, :deleted_before_time
     refute_respond_to ParanoidBoolean, :deleted_after_time
@@ -325,37 +364,51 @@ class ParanoidTest < ActiveSupport::TestCase
   def test_fake_removal
     assert_equal 3, ParanoidTime.count
     assert_equal 3, ParanoidBoolean.count
+    assert_equal 3, ParanoidEpochSec.count
+    assert_equal 3, ParanoidEpochMil.count
     assert_equal 1, ParanoidString.count
 
-    ParanoidTime.first.destroy
+    [ParanoidEpochMil, ParanoidEpochSec, ParanoidTime, ParanoidString].each do |noid|
+      noid.first.destroy
+    end
     ParanoidBoolean.delete_all("name = 'paranoid' OR name = 'really paranoid'")
-    ParanoidString.first.destroy
 
     assert_equal 2, ParanoidTime.count
+    assert_equal 2, ParanoidEpochSec.count
+    assert_equal 2, ParanoidEpochMil.count
     assert_equal 1, ParanoidBoolean.count
     assert_equal 0, ParanoidString.count
+
     assert_equal 1, ParanoidTime.only_deleted.count
+    assert_equal 1, ParanoidEpochSec.only_deleted.count
+    assert_equal 1, ParanoidEpochMil.only_deleted.count
     assert_equal 2, ParanoidBoolean.only_deleted.count
     assert_equal 1, ParanoidString.only_deleted.count
+
     assert_equal 3, ParanoidTime.with_deleted.count
+    assert_equal 3, ParanoidEpochSec.with_deleted.count
+    assert_equal 3, ParanoidEpochMil.with_deleted.count
     assert_equal 3, ParanoidBoolean.with_deleted.count
     assert_equal 1, ParanoidString.with_deleted.count
   end
 
   def test_real_removal
-    ParanoidTime.first.destroy_fully!
-    ParanoidBoolean.delete_all!("name = 'extremely paranoid' OR name = 'really paranoid'")
-    ParanoidString.first.destroy_fully!
+    [ParanoidEpochMil, ParanoidEpochSec, ParanoidTime].each do |noid|
+      noid.first.destroy_fully!
+      assert_equal 2, noid.count
+      assert_equal 2, noid.with_deleted.count
+      assert_equal 0, noid.only_deleted.count
+    end
 
-    assert_equal 2, ParanoidTime.count
-    assert_equal 1, ParanoidBoolean.count
+    ParanoidString.first.destroy_fully!
     assert_equal 0, ParanoidString.count
-    assert_equal 2, ParanoidTime.with_deleted.count
-    assert_equal 1, ParanoidBoolean.with_deleted.count
     assert_equal 0, ParanoidString.with_deleted.count
-    assert_equal 0, ParanoidTime.only_deleted.count
-    assert_equal 0, ParanoidBoolean.only_deleted.count
     assert_equal 0, ParanoidString.only_deleted.count
+
+    ParanoidBoolean.delete_all!("name = 'extremely paranoid' OR name = 'really paranoid'")
+    assert_equal 1, ParanoidBoolean.count
+    assert_equal 1, ParanoidBoolean.with_deleted.count
+    assert_equal 0, ParanoidBoolean.only_deleted.count
 
     ParanoidTime.first.destroy
     ParanoidTime.only_deleted.first.destroy
@@ -1128,10 +1181,8 @@ class ParanoidTest < ActiveSupport::TestCase
     ParanoidTime.first.destroy
 
     assert_equal 1, ParanoidTime.deleted_inside_time_window(1.minute.ago, 2.minutes).count
-    assert_equal 1,
-                 ParanoidTime.deleted_inside_time_window(1.minute.from_now, 2.minutes).count
+    assert_equal 1, ParanoidTime.deleted_inside_time_window(1.minute.from_now, 2.minutes).count
     assert_equal 0, ParanoidTime.deleted_inside_time_window(3.minutes.ago, 1.minute).count
-    assert_equal 0,
-                 ParanoidTime.deleted_inside_time_window(3.minutes.from_now, 1.minute).count
+    assert_equal 0, ParanoidTime.deleted_inside_time_window(3.minutes.from_now, 1.minute).count
   end
 end

@@ -2,10 +2,12 @@
 
 [![Build Status](https://travis-ci.org/ActsAsParanoid/acts_as_paranoid.png?branch=master)](https://travis-ci.org/ActsAsParanoid/acts_as_paranoid)
 
-A Rails plugin to add soft delete.
+A Rails plugin to add soft deletes.
 
 This gem can be used to hide records instead of deleting them, making them
 recoverable later.
+
+This fork was created to support a legacy database with timestamps stored as miliseconds since epoch with a default value of 0 and supports both nullable and non-nullable epoch_sec and epoch_mil Integer timestamps to mark the delete time.
 
 ## Support
 
@@ -62,11 +64,14 @@ While *column* can be anything (as long as it exists in your database), *type*
 is restricted to:
 
 - `boolean`
-- `time` or
+- `time`
 - `string`
+- `epoch_sec` or
+- 'epoch_mil'
 
-Note that the `time` type corresponds to the database column type `datetime`
-in your Rails migrations and schema.
+The `time` type corresponds to the database column type `datetime` in your Rails migrations and schema.
+
+The 'epoch_sec' type corresponds to a database column type 'integer' and seconds since epoch, while 'epoch_mil' will count the milliseconds since epoch. Setting `allow_nulls` to false will treat 0 as 'not deleted'.
 
 If your column type is a `string`, you can also specify which value to use when
 marking an object as deleted by passing `:deleted_value` (default is

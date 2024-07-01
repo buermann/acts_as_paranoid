@@ -8,4 +8,5 @@ group :development do
   gem "sqlite3", "~> 1.4", platforms: [:ruby]
 end
 
+gem 'byebug'
 gemspec

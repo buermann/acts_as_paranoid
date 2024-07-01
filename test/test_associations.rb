@@ -485,9 +485,9 @@ class AssociationsTest < ActiveSupport::TestCase
 
   def test_belongs_to_nil_polymorphic_with_deleted
     paranoid_time = ParanoidTime.create! name: "paranoid"
-    paranoid_has_many_dependant =
-      ParanoidHasManyDependant.create!(name: "dependant!",
-                                       paranoid_time_polymorphic_with_deleted: nil)
+    paranoid_has_many_dependant = ParanoidHasManyDependant.create!(
+      name: "dependant!", paranoid_time_polymorphic_with_deleted: nil
+    )
 
     assert_nil paranoid_has_many_dependant.paranoid_time
     assert_nil paranoid_has_many_dependant.paranoid_time_polymorphic_with_deleted
@@ -509,7 +509,7 @@ class AssociationsTest < ActiveSupport::TestCase
   def test_belongs_to_with_deleted_options
     paranoid_time_with_deleted =
       ParanoidHasManyDependant.reflections
-        .with_indifferent_access[:paranoid_time_with_deleted]
+      .with_indifferent_access[:paranoid_time_with_deleted]
 
     assert_equal :belongs_to, paranoid_time_with_deleted.macro
     assert paranoid_time_with_deleted.options[:with_deleted]
@@ -559,7 +559,7 @@ class AssociationsTest < ActiveSupport::TestCase
 
     assert_empty ParanoidHasManyDependant.with_deleted.joins(:paranoid_time)
     assert_equal [obj],
-                 ParanoidHasManyDependant.with_deleted.joins(:paranoid_time_with_deleted)
+      ParanoidHasManyDependant.with_deleted.joins(:paranoid_time_with_deleted)
   end
 
   def test_includes_with_deleted
@@ -570,8 +570,8 @@ class AssociationsTest < ActiveSupport::TestCase
 
     ParanoidHasManyDependant.with_deleted
       .includes(:paranoid_time_with_deleted).each do |hasmany|
-      assert_not_nil hasmany.paranoid_time_with_deleted
-    end
+        assert_not_nil hasmany.paranoid_time_with_deleted
+      end
   end
 
   def test_includes_with_deleted_with_polymorphic_parent
@@ -598,9 +598,9 @@ class AssociationsTest < ActiveSupport::TestCase
 
     assert_empty left.paranoid_many_many_children, "Linking objects not deleted"
     assert_empty left.paranoid_many_many_parent_rights,
-                 "Associated objects not unlinked"
+      "Associated objects not unlinked"
     assert_equal right, ParanoidManyManyParentRight.find(right.id),
-                 "Associated object deleted"
+      "Associated object deleted"
   end
 
   def test_cannot_find_a_paranoid_destroyed_many_many_association
@@ -614,9 +614,9 @@ class AssociationsTest < ActiveSupport::TestCase
 
     assert_empty left.paranoid_many_many_children, "Linking objects not deleted"
     assert_empty left.paranoid_many_many_parent_rights,
-                 "Associated objects not unlinked"
+      "Associated objects not unlinked"
     assert_equal right, ParanoidManyManyParentRight.find(right.id),
-                 "Associated object deleted"
+      "Associated object deleted"
   end
 
   def test_cannot_find_a_has_many_through_object_when_its_linking_object_is_soft_destroyed
@@ -650,9 +650,9 @@ class AssociationsTest < ActiveSupport::TestCase
     child = left.paranoid_many_many_children.first
 
     assert_equal left, child.paranoid_many_many_parent_left,
-                 "Child's left parent is incorrect"
+      "Child's left parent is incorrect"
     assert_equal right, child.paranoid_many_many_parent_right,
-                 "Child's right parent is incorrect"
+      "Child's right parent is incorrect"
 
     left.paranoid_many_many_parent_rights.clear
 
@@ -667,9 +667,9 @@ class AssociationsTest < ActiveSupport::TestCase
     child = left.paranoid_many_many_children.first
 
     assert_equal left, child.paranoid_many_many_parent_left,
-                 "Child's left parent is incorrect"
+      "Child's left parent is incorrect"
     assert_equal right, child.paranoid_many_many_parent_right,
-                 "Child's right parent is incorrect"
+      "Child's right parent is incorrect"
 
     left.paranoid_many_many_parent_rights.destroy(right)
 
@@ -684,9 +684,9 @@ class AssociationsTest < ActiveSupport::TestCase
     child = left.paranoid_many_many_children.first
 
     assert_equal left, child.paranoid_many_many_parent_left,
-                 "Child's left parent is incorrect"
+      "Child's left parent is incorrect"
     assert_equal right, child.paranoid_many_many_parent_right,
-                 "Child's right parent is incorrect"
+      "Child's right parent is incorrect"
 
     left.paranoid_many_many_parent_rights.delete(right)
 
