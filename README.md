@@ -1,4 +1,4 @@
-# ActsAsParanoid
+# ActsAsParanoidWithIntegerSupport
 
 [![Build Status](https://travis-ci.org/ActsAsParanoid/acts_as_paranoid.png?branch=master)](https://travis-ci.org/ActsAsParanoid/acts_as_paranoid)
 
